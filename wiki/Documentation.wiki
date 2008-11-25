@@ -1,0 +1,2 @@
+#summary You can find the javadoc at:
+http://jasonmirra.com/code/jexxus/doc/index.html
