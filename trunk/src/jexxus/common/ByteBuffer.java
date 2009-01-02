@@ -1,5 +1,7 @@
 package jexxus.common;
 
+import java.util.Arrays;
+
 /**
  * Used for storing many forms of data into a single array of bytes. This is
  * useful for serializing objects to send them over the network or save them as
@@ -165,7 +167,7 @@ public class ByteBuffer {
 	 *            The String to add.
 	 */
 	public void addString(String s) {
-		addInt(s.length());
+		addShort((short) s.length());
 		addBytes(s.getBytes());
 	}
 
@@ -183,6 +185,13 @@ public class ByteBuffer {
 	 */
 	public int size() {
 		return size;
+	}
+
+	/**
+	 * Turns this buffer into an equivalent byte array.
+	 */
+	public byte[] toByteArray() {
+		return Arrays.copyOf(data, size);
 	}
 
 	/**
