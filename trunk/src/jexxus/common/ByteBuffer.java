@@ -155,7 +155,6 @@ public class ByteBuffer {
 		add((byte) b);
 		b >>>= 8;
 		add((byte) b);
-		b >>>= 8;
 	}
 
 	/**
