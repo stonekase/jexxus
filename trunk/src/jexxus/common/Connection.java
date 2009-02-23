@@ -9,6 +9,13 @@ package jexxus.common;
 public interface Connection {
 
 	/**
+	 * Checks to see whether the current connection is open.
+	 * 
+	 * @return True if the connection is established.
+	 */
+	public boolean isConnected();
+
+	/**
 	 * Sends the given data over this connection.
 	 * 
 	 * @param data
@@ -17,5 +24,11 @@ public interface Connection {
 	 *            The requirements for the delivery of this data.
 	 */
 	public void send(byte[] data, Delivery deliveryType);
+
+	/**
+	 * Closes the connection. Further data may not be transfered across this
+	 * link.
+	 */
+	public void close();
 
 }

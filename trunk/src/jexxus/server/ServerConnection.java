@@ -134,4 +134,26 @@ public class ServerConnection implements Connection {
 	void setUDPPort(int port) {
 		this.udpPort = port;
 	}
+
+	@Override
+	public void close() {
+		if (connected) {
+			System.err
+					.println("Cannot close the connection when it is not connected.");
+		} else {
+			try {
+				socket.close();
+				tcpInput.close();
+				tcpOutput.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			connected = false;
+		}
+	}
+
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
 }

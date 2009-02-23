@@ -208,4 +208,26 @@ public class ClientConnection implements Connection {
 		});
 		t.start();
 	}
+
+	@Override
+	public void close() {
+		if (connected) {
+			System.err
+					.println("Cannot close the connection when it is not connected.");
+		} else {
+			try {
+				tcpSocket.close();
+				tcpInput.close();
+				tcpOutput.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			connected = false;
+		}
+	}
+
+	@Override
+	public boolean isConnected() {
+		return connected;
+	}
 }
