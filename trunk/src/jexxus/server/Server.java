@@ -26,6 +26,8 @@ public class Server {
 	private boolean running = false;
 	protected final int tcpPort, udpPort;
 	private final HashMap<String, ServerConnection> clients = new HashMap<String, ServerConnection>();
+	private final HashMap<String, ServerConnection> udpClients = new HashMap<String, ServerConnection>();
+
 	private final DatagramPacket outgoingPacket = new DatagramPacket(
 			new byte[0], 0);
 
@@ -136,7 +138,10 @@ public class Server {
 								inputPacket.getLength());
 						String senderIP = inputPacket.getAddress()
 								.getHostAddress();
-						ServerConnection conn = clients.get(senderIP);
+						ServerConnection conn = udpClients.get(senderIP
+								+ inputPacket.getPort());
+						if (conn == null)
+							conn = clients.get(senderIP);
 						if (conn == null) {
 							System.err
 									.println("Received UDP Packet from unknown source: "
@@ -145,7 +150,18 @@ public class Server {
 							if (ret.length == 0) {
 								System.out.println("Set UDP Port: "
 										+ inputPacket.getPort());
+								if (conn.getUDPPort() != -1) {
+									// see if there is another connection without a UDP port set
+									for (ServerConnection sc : clients.values()) {
+										if (sc.getUDPPort() == -1) {
+											conn = sc;
+											break;
+										}
+									}
+								}
 								conn.setUDPPort(inputPacket.getPort());
+								udpClients.put(
+										senderIP + inputPacket.getPort(), conn);
 							} else {
 								listener.receive(ret, conn);
 							}
@@ -166,6 +182,9 @@ public class Server {
 	void connectionDied(ServerConnection conn, boolean forced) {
 		synchronized (clients) {
 			clients.remove(conn.getIP());
+		}
+		synchronized (udpClients) {
+			clients.remove(conn.getIP() + conn.getUDPPort());
 		}
 		listener.clientDisconnected(conn, forced);
 	}
