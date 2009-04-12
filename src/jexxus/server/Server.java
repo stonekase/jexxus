@@ -110,6 +110,7 @@ public class Server {
 						ServerConnection sc = new ServerConnection(Server.this,
 								listener, sock);
 						clients.put(sc.getIP(), sc);
+						listener.clientConnected(sc);
 					} catch (IOException e) {
 						if (running) {
 							e.printStackTrace();
