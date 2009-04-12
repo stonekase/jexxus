@@ -156,4 +156,9 @@ public class ServerConnection implements Connection {
 	public boolean isConnected() {
 		return connected;
 	}
+
+	public String getTCPPort() {
+		// TODO Auto-generated method stub
+		return null;
+	}
 }
