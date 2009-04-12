@@ -20,6 +20,14 @@ public interface ServerConnectionListener {
 	public void receive(byte[] ret, ServerConnection sender);
 
 	/**
+	 * Called when a client connects to the server.
+	 * 
+	 * @param connected
+	 *            The client who connected.
+	 */
+	public void clientConnected(ServerConnection connected);
+
+	/**
 	 * Called whenever a client gets disconnected from the server.
 	 * 
 	 * @param disconnected
