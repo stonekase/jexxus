@@ -23,7 +23,7 @@ import jexxus.common.Delivery;
  */
 public class ClientConnection implements Connection {
 
-	private final ClientConnectionListener listener;
+	private ClientConnectionListener listener;
 	private final Socket tcpSocket;
 	private DatagramSocket udpSocket;
 	protected final String serverAddress;
@@ -35,8 +35,7 @@ public class ClientConnection implements Connection {
 	private final byte[] header = new byte[4];
 
 	/**
-	 * Creates a new connection to a server. The connection is not ready for use
-	 * until <code>connect()</code> is called.
+	 * Creates a new connection to a server. The connection is not ready for use until <code>connect()</code> is called.
 	 * 
 	 * @param listener
 	 *            The responder to special events such as receiving data.
@@ -45,14 +44,12 @@ public class ClientConnection implements Connection {
 	 * @param tcpPort
 	 *            The port to connect to the server on.
 	 */
-	public ClientConnection(ClientConnectionListener listener,
-			String serverAddress, int tcpPort) {
+	public ClientConnection(ClientConnectionListener listener, String serverAddress, int tcpPort) {
 		this(listener, serverAddress, tcpPort, -1);
 	}
 
 	/**
-	 * Creates a new connection to a server. The connection is not ready for use
-	 * until <code>connect()</code> is called.
+	 * Creates a new connection to a server. The connection is not ready for use until <code>connect()</code> is called.
 	 * 
 	 * @param listener
 	 *            The responder to special events such as receiving data.
@@ -63,8 +60,7 @@ public class ClientConnection implements Connection {
 	 * @param udpPort
 	 *            The port to send data using the UDP protocol.
 	 */
-	public ClientConnection(ClientConnectionListener listener,
-			String serverAddress, int tcpPort, int udpPort) {
+	public ClientConnection(ClientConnectionListener listener, String serverAddress, int tcpPort, int udpPort) {
 		if (listener == null)
 			throw new RuntimeException("You must supply a connection listener.");
 		this.listener = listener;
@@ -74,12 +70,10 @@ public class ClientConnection implements Connection {
 		tcpSocket = new Socket();
 		if (udpPort != -1) {
 			try {
-				packet = new DatagramPacket(new byte[0], 0,
-						new InetSocketAddress(serverAddress, udpPort));
+				packet = new DatagramPacket(new byte[0], 0, new InetSocketAddress(serverAddress, udpPort));
 				udpSocket = new DatagramSocket();
 			} catch (IOException e) {
-				System.err.println("Problem initializing UDP on port "
-						+ udpPort);
+				System.err.println("Problem initializing UDP on port " + udpPort);
 				System.err.println(e.toString());
 			}
 		}
@@ -106,13 +100,11 @@ public class ClientConnection implements Connection {
 				send(new byte[0], Delivery.UNRELIABLE);
 			}
 			/*
-			 * byte[] portBuf = new byte[4]; ByteUtils.pack(udpPort, portBuf);
-			 * tcpOutput.write(portBuf); tcpOutput.flush();
+			 * byte[] portBuf = new byte[4]; ByteUtils.pack(udpPort, portBuf); tcpOutput.write(portBuf); tcpOutput.flush();
 			 */
 			return true;
 		} catch (IOException e) {
-			System.err.println("Problem establishing TCP connection to "
-					+ serverAddress + ":" + tcpPort);
+			System.err.println("Problem establishing TCP connection to " + serverAddress + ":" + tcpPort);
 			System.err.println(e.toString());
 			return false;
 		}
@@ -137,8 +129,7 @@ public class ClientConnection implements Connection {
 			}
 		} else if (deliveryType == Delivery.UNRELIABLE) {
 			if (udpPort == -1) {
-				System.err
-						.println("Cannot send Unreliable data unless a UDP port is specified.");
+				System.err.println("Cannot send Unreliable data unless a UDP port is specified.");
 				return;
 			}
 			packet.setData(data);
@@ -189,13 +180,11 @@ public class ClientConnection implements Connection {
 		Thread t = new Thread(new Runnable() {
 			public void run() {
 				final int BUF_SIZE = 2048;
-				final DatagramPacket inputPacket = new DatagramPacket(
-						new byte[BUF_SIZE], BUF_SIZE);
+				final DatagramPacket inputPacket = new DatagramPacket(new byte[BUF_SIZE], BUF_SIZE);
 				while (true) {
 					try {
 						udpSocket.receive(inputPacket);
-						byte[] ret = Arrays.copyOf(inputPacket.getData(),
-								inputPacket.getLength());
+						byte[] ret = Arrays.copyOf(inputPacket.getData(), inputPacket.getLength());
 						listener.receive(ret);
 					} catch (IOException e) {
 						if (connected) {
@@ -212,8 +201,7 @@ public class ClientConnection implements Connection {
 	@Override
 	public void close() {
 		if (connected) {
-			System.err
-					.println("Cannot close the connection when it is not connected.");
+			System.err.println("Cannot close the connection when it is not connected.");
 		} else {
 			try {
 				tcpSocket.close();
@@ -229,5 +217,12 @@ public class ClientConnection implements Connection {
 	@Override
 	public boolean isConnected() {
 		return connected;
+	}
+
+	/**
+	 * Sets the connection listener.
+	 */
+	public void setConnectionListener(ClientConnectionListener listener) {
+		this.listener = listener;
 	}
 }
