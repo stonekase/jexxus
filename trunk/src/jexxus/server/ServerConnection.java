@@ -21,7 +21,7 @@ import jexxus.common.Delivery;
 public class ServerConnection implements Connection {
 
 	private final Server controller;
-	private final ServerConnectionListener listener;
+	private ServerConnectionListener listener;
 	private final Socket socket;
 	private final OutputStream tcpOutput;
 	private final InputStream tcpInput;
@@ -31,8 +31,7 @@ public class ServerConnection implements Connection {
 	private final String ip;
 	private int udpPort = -1;
 
-	ServerConnection(Server controller, ServerConnectionListener listener,
-			Socket socket) throws IOException {
+	ServerConnection(Server controller, ServerConnectionListener listener, Socket socket) throws IOException {
 		this.controller = controller;
 		this.listener = listener;
 		this.socket = socket;
@@ -58,11 +57,9 @@ public class ServerConnection implements Connection {
 					} catch (IOException e) {
 						if (connected) {
 							connected = false;
-							controller.connectionDied(ServerConnection.this,
-									false);
+							controller.connectionDied(ServerConnection.this, false);
 						} else {
-							controller.connectionDied(ServerConnection.this,
-									true);
+							controller.connectionDied(ServerConnection.this, true);
 						}
 						break;
 					}
@@ -138,8 +135,7 @@ public class ServerConnection implements Connection {
 	@Override
 	public void close() {
 		if (connected) {
-			System.err
-					.println("Cannot close the connection when it is not connected.");
+			System.err.println("Cannot close the connection when it is not connected.");
 		} else {
 			try {
 				socket.close();
@@ -157,8 +153,7 @@ public class ServerConnection implements Connection {
 		return connected;
 	}
 
-	public String getTCPPort() {
-		// TODO Auto-generated method stub
-		return null;
+	public void setListener(ServerConnectionListener listener) {
+		this.listener = listener;
 	}
 }
