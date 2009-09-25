@@ -54,7 +54,7 @@ public class ServerConnection implements Connection {
 							count += tcpInput.read(ret, count, len - count);
 						}
 						listener.receive(ret, ServerConnection.this);
-					} catch (IOException e) {
+					} catch (Exception e) {
 						if (connected) {
 							connected = false;
 							controller.connectionDied(ServerConnection.this, false);
