@@ -200,7 +200,7 @@ public class ClientConnection implements Connection {
 
 	@Override
 	public void close() {
-		if (connected) {
+		if (!connected) {
 			System.err.println("Cannot close the connection when it is not connected.");
 		} else {
 			try {
