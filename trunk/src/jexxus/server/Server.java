@@ -12,8 +12,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 
 /**
- * Acts as a server for incoming client connections. The server can send and
- * receive data from all clients who connect to this server.
+ * Acts as a server for incoming client connections. The server can send and receive data from all clients who connect to this server.
  * 
  * @author Jason
  * 
@@ -28,8 +27,7 @@ public class Server {
 	private final HashMap<String, ServerConnection> clients = new HashMap<String, ServerConnection>();
 	private final HashMap<String, ServerConnection> udpClients = new HashMap<String, ServerConnection>();
 
-	private final DatagramPacket outgoingPacket = new DatagramPacket(
-			new byte[0], 0);
+	private final DatagramPacket outgoingPacket = new DatagramPacket(new byte[0], 0);
 
 	/**
 	 * Creates a new server.
@@ -46,42 +44,34 @@ public class Server {
 	/**
 	 * Creates a new server.<br>
 	 * <br>
-	 * Note: The server will not begin listening for connections until
-	 * <code>startServer()</code> is called.
+	 * Note: The server will not begin listening for connections until <code>startServer()</code> is called.
 	 * 
 	 * @param listener
 	 *            The responder to special events such as receiving data.
 	 * @param tcpPort
 	 *            The port to listen for TCP client connections on.
 	 * @param udpPort
-	 *            The port to listen for UDP client connections on. Use -1 if
-	 *            you don't want to use any UDP.
+	 *            The port to listen for UDP client connections on. Use -1 if you don't want to use any UDP.
 	 */
 	public Server(ServerConnectionListener listener, int tcpPort, int udpPort) {
 		if (listener == null)
-			throw new RuntimeException(
-					"Cannot give null ServerConnectionListener!");
+			throw new RuntimeException("Cannot give null ServerConnectionListener!");
 		this.listener = listener;
 		this.tcpPort = tcpPort;
 		this.udpPort = udpPort;
 		try {
 			tcpSocket = new ServerSocket(tcpPort);
 		} catch (BindException e) {
-			System.err.println("There is already a server bound to port "
-					+ tcpPort + " on this computer.");
+			System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");
 		} catch (IOException e) {
-			System.err
-					.println("There was a problem starting the server's TCP socket on port "
-							+ tcpPort);
+			System.err.println("There was a problem starting the server's TCP socket on port " + tcpPort);
 			System.err.println(e.toString());
 		}
 		if (udpPort != -1) {
 			try {
 				udpSocket = new DatagramSocket(udpPort);
 			} catch (SocketException e) {
-				System.err
-						.println("There was a problem starting the server's UDP socket on port "
-								+ udpPort);
+				System.err.println("There was a problem starting the server's UDP socket on port " + udpPort);
 				System.err.println(e.toString());
 			}
 		}
@@ -89,8 +79,7 @@ public class Server {
 	}
 
 	/**
-	 * After the server has started, it is open for accepting new client
-	 * connections.
+	 * After the server has started, it is open for accepting new client connections.
 	 */
 	public synchronized void startServer() {
 		if (running) {
@@ -109,8 +98,7 @@ public class Server {
 				while (running) {
 					try {
 						Socket sock = tcpSocket.accept();
-						ServerConnection sc = new ServerConnection(Server.this,
-								listener, sock);
+						ServerConnection sc = new ServerConnection(Server.this, listener, sock);
 						clients.put(sc.getIP(), sc);
 						listener.clientConnected(sc);
 					} catch (IOException e) {
@@ -122,6 +110,7 @@ public class Server {
 				}
 			}
 		});
+		t.setName("Jexxus-TCPConnectionListener");
 		t.start();
 	}
 
@@ -129,27 +118,20 @@ public class Server {
 		Thread t = new Thread(new Runnable() {
 			public void run() {
 				final int BUF_SIZE = 2048;
-				final DatagramPacket inputPacket = new DatagramPacket(
-						new byte[BUF_SIZE], BUF_SIZE);
+				final DatagramPacket inputPacket = new DatagramPacket(new byte[BUF_SIZE], BUF_SIZE);
 				while (true) {
 					try {
 						udpSocket.receive(inputPacket);
-						byte[] ret = Arrays.copyOf(inputPacket.getData(),
-								inputPacket.getLength());
-						String senderIP = inputPacket.getAddress()
-								.getHostAddress();
-						ServerConnection conn = udpClients.get(senderIP
-								+ inputPacket.getPort());
+						byte[] ret = Arrays.copyOf(inputPacket.getData(), inputPacket.getLength());
+						String senderIP = inputPacket.getAddress().getHostAddress();
+						ServerConnection conn = udpClients.get(senderIP + inputPacket.getPort());
 						if (conn == null)
 							conn = clients.get(senderIP);
 						if (conn == null) {
-							System.err
-									.println("Received UDP Packet from unknown source: "
-											+ senderIP);
+							System.err.println("Received UDP Packet from unknown source: " + senderIP);
 						} else {
 							if (ret.length == 0) {
-								System.out.println("Set UDP Port: "
-										+ inputPacket.getPort());
+								System.out.println("Set UDP Port: " + inputPacket.getPort());
 								if (conn.getUDPPort() != -1) {
 									// see if there is another connection without a UDP port set
 									for (ServerConnection sc : clients.values()) {
@@ -160,8 +142,7 @@ public class Server {
 									}
 								}
 								conn.setUDPPort(inputPacket.getPort());
-								udpClients.put(
-										senderIP + inputPacket.getPort(), conn);
+								udpClients.put(senderIP + inputPacket.getPort(), conn);
 							} else {
 								listener.receive(ret, conn);
 							}
@@ -187,6 +168,7 @@ public class Server {
 			clients.remove(conn.getIP() + conn.getUDPPort());
 		}
 		listener.clientDisconnected(conn, forced);
+
 	}
 
 	void sendUDP(byte[] data, ServerConnection serverConnection) {
@@ -203,12 +185,10 @@ public class Server {
 	}
 
 	/**
-	 * After the server has shut down, no new client connections can be
-	 * established.
+	 * After the server has shut down, no new client connections can be established.
 	 * 
 	 * @param closeAllConnections
-	 *            If this is true, all previously opened client connections will
-	 *            be closed.
+	 *            If this is true, all previously opened client connections will be closed.
 	 */
 	public void shutdown(boolean closeAllConnections) {
 		running = false;
