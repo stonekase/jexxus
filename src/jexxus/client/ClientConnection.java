@@ -173,6 +173,7 @@ public class ClientConnection implements Connection {
 				}
 			}
 		});
+		t.setName("Jexxus-TCPSocketListener");
 		t.start();
 	}
 

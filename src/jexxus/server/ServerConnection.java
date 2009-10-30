@@ -58,22 +58,24 @@ public class ServerConnection implements Connection {
 						if (connected) {
 							connected = false;
 							controller.connectionDied(ServerConnection.this, false);
+							listener.clientDisconnected(ServerConnection.this, false);
 						} else {
 							controller.connectionDied(ServerConnection.this, true);
+							listener.clientDisconnected(ServerConnection.this, true);
 						}
 						break;
 					}
 				}
 			}
 		});
+		t.setName("Jexxus-TCPSocketListener");
 		t.start();
 	}
 
 	@Override
 	public synchronized void send(byte[] data, Delivery deliveryType) {
 		if (connected == false) {
-			System.err.println("Cannot send message when not connected!");
-			return;
+			throw new RuntimeException("Cannot send message when not connected!");
 		}
 		if (deliveryType == Delivery.RELIABLE) {
 			// send with TCP
@@ -135,7 +137,7 @@ public class ServerConnection implements Connection {
 	@Override
 	public void close() {
 		if (!connected) {
-			System.err.println("Cannot close the connection when it is not connected.");
+			throw new RuntimeException("Cannot close the connection when it is not connected.");
 		} else {
 			try {
 				socket.close();
