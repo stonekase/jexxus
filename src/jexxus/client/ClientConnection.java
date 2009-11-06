@@ -9,9 +9,9 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 
-import jexxus.common.ByteUtils;
 import jexxus.common.Connection;
 import jexxus.common.Delivery;
 
@@ -24,7 +24,7 @@ import jexxus.common.Delivery;
 public class ClientConnection implements Connection {
 
 	private ClientConnectionListener listener;
-	private final Socket tcpSocket;
+	private Socket tcpSocket;
 	private DatagramSocket udpSocket;
 	protected final String serverAddress;
 	protected final int tcpPort, udpPort;
@@ -61,13 +61,14 @@ public class ClientConnection implements Connection {
 	 *            The port to send data using the UDP protocol.
 	 */
 	public ClientConnection(ClientConnectionListener listener, String serverAddress, int tcpPort, int udpPort) {
-		if (listener == null)
+		if (listener == null) {
 			throw new RuntimeException("You must supply a connection listener.");
+		}
 		this.listener = listener;
 		this.serverAddress = serverAddress;
 		this.tcpPort = tcpPort;
 		this.udpPort = udpPort;
-		tcpSocket = new Socket();
+
 		if (udpPort != -1) {
 			try {
 				packet = new DatagramPacket(new byte[0], 0, new InetSocketAddress(serverAddress, udpPort));
@@ -79,18 +80,23 @@ public class ClientConnection implements Connection {
 		}
 	}
 
+	public synchronized boolean connect() {
+		return connect(0);
+	}
+
 	/**
 	 * Tries to open a connection to the server.
 	 * 
 	 * @return true if the connection was successful, false otherwise.
 	 */
-	public synchronized boolean connect() {
+	public synchronized boolean connect(int timeout) {
 		if (connected) {
 			System.err.println("Tried to connect after already connected!");
 			return true;
 		}
 		try {
-			tcpSocket.connect(new InetSocketAddress(serverAddress, tcpPort));
+			tcpSocket = new Socket();
+			tcpSocket.connect(new InetSocketAddress(serverAddress, tcpPort), timeout);
 			tcpInput = new BufferedInputStream(tcpSocket.getInputStream());
 			tcpOutput = new BufferedOutputStream(tcpSocket.getOutputStream());
 			startTCPListener();
@@ -116,7 +122,7 @@ public class ClientConnection implements Connection {
 			System.err.println("Cannot send message when not connected!");
 			return;
 		}
-		ByteUtils.pack(data.length, header);
+		ByteBuffer.wrap(header).putInt(data.length);
 		if (deliveryType == Delivery.RELIABLE) {
 			// send with TCP
 			try {
@@ -149,9 +155,10 @@ public class ClientConnection implements Connection {
 			public void run() {
 				while (true) {
 					try {
-						if (tcpInput.read(headerInput) == -1)
+						if (tcpInput.read(headerInput) == -1) {
 							throw new IOException("Ended.");
-						int len = ByteUtils.unpack(headerInput);
+						}
+						int len = ByteBuffer.wrap(headerInput).getInt();
 						byte[] ret = new byte[len];
 						int count = 0;
 						while (count < len) {
