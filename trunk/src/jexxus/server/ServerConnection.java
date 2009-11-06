@@ -7,8 +7,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.nio.ByteBuffer;
 
-import jexxus.common.ByteUtils;
 import jexxus.common.Connection;
 import jexxus.common.Delivery;
 
@@ -47,7 +47,7 @@ public class ServerConnection implements Connection {
 				while (true) {
 					try {
 						tcpInput.read(headerInput);
-						int len = ByteUtils.unpack(headerInput);
+						int len = ByteBuffer.wrap(headerInput).getInt();
 						byte[] ret = new byte[len];
 						int count = 0;
 						while (count < len) {
@@ -79,7 +79,7 @@ public class ServerConnection implements Connection {
 		}
 		if (deliveryType == Delivery.RELIABLE) {
 			// send with TCP
-			ByteUtils.pack(data.length, headerOutput);
+			ByteBuffer.wrap(headerOutput).putInt(data.length);
 			try {
 				tcpOutput.write(headerOutput);
 				tcpOutput.write(data);
