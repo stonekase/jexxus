@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 
 import jexxus.common.Connection;
 import jexxus.common.Delivery;
@@ -18,15 +17,13 @@ import jexxus.common.Delivery;
  * @author Jason
  * 
  */
-public class ServerConnection implements Connection {
+public class ServerConnection extends Connection {
 
 	private final Server controller;
 	private ServerConnectionListener listener;
 	private final Socket socket;
 	private final OutputStream tcpOutput;
 	private final InputStream tcpInput;
-	private final byte[] headerInput = new byte[4];
-	private final byte[] headerOutput = new byte[4];
 	private boolean connected = true;
 	private final String ip;
 	private int udpPort = -1;
@@ -46,13 +43,7 @@ public class ServerConnection implements Connection {
 			public void run() {
 				while (true) {
 					try {
-						tcpInput.read(headerInput);
-						int len = ByteBuffer.wrap(headerInput).getInt();
-						byte[] ret = new byte[len];
-						int count = 0;
-						while (count < len) {
-							count += tcpInput.read(ret, count, len - count);
-						}
+						byte[] ret = readTCP(tcpInput);
 						listener.receive(ret, ServerConnection.this);
 					} catch (Exception e) {
 						if (connected) {
@@ -79,11 +70,8 @@ public class ServerConnection implements Connection {
 		}
 		if (deliveryType == Delivery.RELIABLE) {
 			// send with TCP
-			ByteBuffer.wrap(headerOutput).putInt(data.length);
 			try {
-				tcpOutput.write(headerOutput);
-				tcpOutput.write(data);
-				tcpOutput.flush();
+				sendTCP(data, tcpOutput);
 			} catch (IOException e) {
 				System.err.println("Error writing TCP data.");
 				System.err.println(e.toString());

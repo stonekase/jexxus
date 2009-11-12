@@ -9,7 +9,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 
 import jexxus.common.Connection;
@@ -21,7 +20,7 @@ import jexxus.common.Delivery;
  * @author Jason
  * 
  */
-public class ClientConnection implements Connection {
+public class ClientConnection extends Connection {
 
 	private ClientConnectionListener listener;
 	private Socket tcpSocket;
@@ -32,7 +31,6 @@ public class ClientConnection implements Connection {
 	private boolean connected = false;
 	private InputStream tcpInput;
 	private OutputStream tcpOutput;
-	private final byte[] header = new byte[4];
 
 	/**
 	 * Creates a new connection to a server. The connection is not ready for use until <code>connect()</code> is called.
@@ -122,13 +120,11 @@ public class ClientConnection implements Connection {
 			System.err.println("Cannot send message when not connected!");
 			return;
 		}
-		ByteBuffer.wrap(header).putInt(data.length);
+
 		if (deliveryType == Delivery.RELIABLE) {
 			// send with TCP
 			try {
-				tcpOutput.write(header);
-				tcpOutput.write(data);
-				tcpOutput.flush();
+				super.sendTCP(data, tcpOutput);
 			} catch (IOException e) {
 				System.err.println("Error writing TCP data.");
 				System.err.println(e.toString());
@@ -150,20 +146,10 @@ public class ClientConnection implements Connection {
 
 	private void startTCPListener() {
 		Thread t = new Thread(new Runnable() {
-			final byte[] headerInput = new byte[4];
-
 			public void run() {
 				while (true) {
 					try {
-						if (tcpInput.read(headerInput) == -1) {
-							throw new IOException("Ended.");
-						}
-						int len = ByteBuffer.wrap(headerInput).getInt();
-						byte[] ret = new byte[len];
-						int count = 0;
-						while (count < len) {
-							count += tcpInput.read(ret, count, len - count);
-						}
+						byte[] ret = readTCP(tcpInput);
 						listener.receive(ret);
 					} catch (IOException e) {
 						if (connected) {
