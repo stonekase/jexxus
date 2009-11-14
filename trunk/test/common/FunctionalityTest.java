@@ -20,6 +20,8 @@ public class FunctionalityTest implements ServerConnectionListener, ClientConnec
 	String serverMessage = "Server: " + message;
 	String clientMessage = "Client: " + message;
 
+	boolean received = false;
+
 	@Test
 	public void doTest() {
 		int port = 3252;
@@ -29,15 +31,17 @@ public class FunctionalityTest implements ServerConnectionListener, ClientConnec
 		try {
 			ClientConnection conn = new ClientConnection(this, "localhost", port);
 			conn.connect();
+			System.out.println("Connected!!!");
 			conn.send(clientMessage.getBytes(), Delivery.RELIABLE);
 			conn.send(clientMessage.getBytes(), Delivery.RELIABLE);
 			conn.send(clientMessage.getBytes(), Delivery.RELIABLE);
 			conn.send(clientMessage.getBytes(), Delivery.RELIABLE);
 			try {
-				Thread.sleep(4000);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			Assert.assertTrue(received);
 		} finally {
 			server.shutdown(true);
 		}
@@ -57,6 +61,7 @@ public class FunctionalityTest implements ServerConnectionListener, ClientConnec
 	@Override
 	public void receive(byte[] ret, ServerConnection sender) {
 		Assert.assertArrayEquals(clientMessage.getBytes(), ret);
+		received = true;
 	}
 
 	@Override
