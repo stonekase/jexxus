@@ -10,6 +10,8 @@ import java.net.Socket;
 
 import jexxus.common.Connection;
 import jexxus.common.Delivery;
+import jexxus.common.Encryption;
+import jexxus.common.Encryption.Algorithm;
 
 /**
  * Represents a server's connection to a client.
@@ -27,6 +29,7 @@ public class ServerConnection extends Connection {
 	private boolean connected = true;
 	private final String ip;
 	private int udpPort = -1;
+	private Encryption.Algorithm encryption;
 
 	ServerConnection(Server controller, ServerConnectionListener listener, Socket socket) throws IOException {
 		this.controller = controller;
@@ -35,7 +38,19 @@ public class ServerConnection extends Connection {
 		this.ip = socket.getInetAddress().getHostAddress();
 		tcpOutput = new BufferedOutputStream(socket.getOutputStream());
 		tcpInput = new BufferedInputStream(socket.getInputStream());
+
+		try {
+			this.encryption = Encryption.createEncryptionAlgorithm(this);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
 		startTCPListener();
+	}
+
+	@Override
+	protected Algorithm getEncryptionAlgorithm() {
+		return encryption;
 	}
 
 	private void startTCPListener() {
@@ -43,7 +58,7 @@ public class ServerConnection extends Connection {
 			public void run() {
 				while (true) {
 					try {
-						byte[] ret = readTCP(tcpInput);
+						byte[] ret = readTCP();
 						listener.receive(ret, ServerConnection.this);
 					} catch (Exception e) {
 						if (connected) {
@@ -71,7 +86,7 @@ public class ServerConnection extends Connection {
 		if (deliveryType == Delivery.RELIABLE) {
 			// send with TCP
 			try {
-				sendTCP(data, tcpOutput);
+				sendTCP(data);
 			} catch (IOException e) {
 				System.err.println("Error writing TCP data.");
 				System.err.println(e.toString());
@@ -145,5 +160,15 @@ public class ServerConnection extends Connection {
 
 	public void setListener(ServerConnectionListener listener) {
 		this.listener = listener;
+	}
+
+	@Override
+	protected InputStream getTCPInputStream() {
+		return tcpInput;
+	}
+
+	@Override
+	protected OutputStream getTCPOutputStream() {
+		return tcpOutput;
 	}
 }

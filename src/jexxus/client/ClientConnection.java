@@ -13,6 +13,8 @@ import java.util.Arrays;
 
 import jexxus.common.Connection;
 import jexxus.common.Delivery;
+import jexxus.common.Encryption;
+import jexxus.common.Encryption.Algorithm;
 
 /**
  * Used to establish a connection to a server.
@@ -31,6 +33,7 @@ public class ClientConnection extends Connection {
 	private boolean connected = false;
 	private InputStream tcpInput;
 	private OutputStream tcpOutput;
+	private Encryption.Algorithm encryption;
 
 	/**
 	 * Creates a new connection to a server. The connection is not ready for use until <code>connect()</code> is called.
@@ -97,6 +100,13 @@ public class ClientConnection extends Connection {
 			tcpSocket.connect(new InetSocketAddress(serverAddress, tcpPort), timeout);
 			tcpInput = new BufferedInputStream(tcpSocket.getInputStream());
 			tcpOutput = new BufferedOutputStream(tcpSocket.getOutputStream());
+
+			try {
+				this.encryption = Encryption.createEncryptionAlgorithm(this);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
 			startTCPListener();
 			connected = true;
 			if (udpPort != -1) {
@@ -115,6 +125,11 @@ public class ClientConnection extends Connection {
 	}
 
 	@Override
+	protected Algorithm getEncryptionAlgorithm() {
+		return encryption;
+	}
+
+	@Override
 	public synchronized void send(byte[] data, Delivery deliveryType) {
 		if (connected == false) {
 			System.err.println("Cannot send message when not connected!");
@@ -124,7 +139,7 @@ public class ClientConnection extends Connection {
 		if (deliveryType == Delivery.RELIABLE) {
 			// send with TCP
 			try {
-				super.sendTCP(data, tcpOutput);
+				super.sendTCP(data);
 			} catch (IOException e) {
 				System.err.println("Error writing TCP data.");
 				System.err.println(e.toString());
@@ -149,7 +164,7 @@ public class ClientConnection extends Connection {
 			public void run() {
 				while (true) {
 					try {
-						byte[] ret = readTCP(tcpInput);
+						byte[] ret = readTCP();
 						listener.receive(ret);
 					} catch (IOException e) {
 						if (connected) {
@@ -218,5 +233,15 @@ public class ClientConnection extends Connection {
 	 */
 	public void setConnectionListener(ClientConnectionListener listener) {
 		this.listener = listener;
+	}
+
+	@Override
+	protected InputStream getTCPInputStream() {
+		return tcpInput;
+	}
+
+	@Override
+	protected OutputStream getTCPOutputStream() {
+		return tcpOutput;
 	}
 }

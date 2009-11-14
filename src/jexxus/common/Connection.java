@@ -36,6 +36,10 @@ public abstract class Connection {
 	 */
 	public abstract void send(byte[] data, Delivery deliveryType);
 
+	protected abstract InputStream getTCPInputStream();
+
+	protected abstract OutputStream getTCPOutputStream();
+
 	/**
 	 * Closes the connection. Further data may not be transfered across this link.
 	 */
@@ -44,7 +48,9 @@ public abstract class Connection {
 	private final byte[] headerInput = new byte[8];
 	private final byte[] headerOutput = new byte[8];
 
-	protected byte[] readTCP(InputStream tcpInput) throws IOException {
+	protected byte[] readTCP() throws IOException {
+		InputStream tcpInput = getTCPInputStream();
+
 		if (tcpInput.read(headerInput) == -1) {
 			throw new IOException("Ended.");
 		}
@@ -53,18 +59,28 @@ public abstract class Connection {
 			throw new InvalidProtocolException("Bad magic number: " + magicNumber);
 		}
 		int len = ByteBuffer.wrap(headerInput).getInt(4);
-		byte[] ret = new byte[len];
+		byte[] data = new byte[len];
 		int count = 0;
 		while (count < len) {
-			count += tcpInput.read(ret, count, len - count);
+			count += tcpInput.read(data, count, len - count);
 		}
-		ret = decompress(ret);
+		Encryption.Algorithm crypt = getEncryptionAlgorithm();
+		if (crypt != null) {
+			data = crypt.decrpyt(data);
+		}
+		data = decompress(data);
 
-		return ret;
+		return data;
 	}
 
-	protected void sendTCP(byte[] data, OutputStream tcpOutput) throws IOException {
+	protected void sendTCP(byte[] data) throws IOException {
+		OutputStream tcpOutput = getTCPOutputStream();
+
 		data = compress(data);
+		Encryption.Algorithm crypt = getEncryptionAlgorithm();
+		if (crypt != null) {
+			data = crypt.encrypt(data);
+		}
 		ByteBuffer.wrap(headerOutput).putInt(MAGIC_NUMBER);
 		ByteBuffer.wrap(headerOutput).putInt(4, data.length);
 		tcpOutput.write(headerOutput);
@@ -105,5 +121,10 @@ public abstract class Connection {
 		}
 
 		return bos.toByteArray();
+	}
+
+	protected Encryption.Algorithm getEncryptionAlgorithm() {
+		// Subclasses can override
+		return null;
 	}
 }
