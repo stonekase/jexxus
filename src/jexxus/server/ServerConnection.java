@@ -59,9 +59,9 @@ public class ServerConnection extends Connection {
 		Thread t = new Thread(new Runnable() {
 			public void run() {
 				while (true) {
+					byte[] ret;
 					try {
-						byte[] ret = readTCP();
-						listener.receive(ret, ServerConnection.this);
+						ret = readTCP();
 					} catch (SocketException e) {
 						if (connected) {
 							connected = false;
@@ -72,6 +72,12 @@ public class ServerConnection extends Connection {
 							listener.connectionBroken(ServerConnection.this, true);
 						}
 						break;
+					} catch (Exception e) {
+						e.printStackTrace();
+						break;
+					}
+					try {
+						listener.receive(ret, ServerConnection.this);
 					} catch (Exception e) {
 						e.printStackTrace();
 					}

@@ -162,9 +162,9 @@ public class ClientConnection extends Connection {
 		Thread t = new Thread(new Runnable() {
 			public void run() {
 				while (true) {
+					byte[] ret;
 					try {
-						byte[] ret = readTCP();
-						listener.receive(ret, ClientConnection.this);
+						ret = readTCP();
 					} catch (IOException e) {
 						if (connected) {
 							encryption = null;
@@ -177,6 +177,14 @@ public class ClientConnection extends Connection {
 							udpSocket.close();
 						}
 						break;
+					} catch (Exception e) {
+						e.printStackTrace();
+						break;
+					}
+					try {
+						listener.receive(ret, ClientConnection.this);
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
 				}
 			}
