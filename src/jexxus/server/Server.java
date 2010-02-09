@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import jexxus.common.ConnectionListener;
+
 /**
  * Acts as a server for incoming client connections. The server can send and receive data from all clients who connect to this server.
  * 
@@ -19,7 +21,7 @@ import java.util.LinkedList;
  */
 public class Server {
 
-	private final ServerConnectionListener listener;
+	private final ConnectionListener listener;
 	private ServerSocket tcpSocket;
 	private DatagramSocket udpSocket;
 	private boolean running = false;
@@ -37,7 +39,7 @@ public class Server {
 	 * @param port
 	 *            The port to listen for client connections on. [TCP]
 	 */
-	public Server(ServerConnectionListener listener, int port) {
+	public Server(ConnectionListener listener, int port) {
 		this(listener, port, -1);
 	}
 
@@ -53,19 +55,21 @@ public class Server {
 	 * @param udpPort
 	 *            The port to listen for UDP client connections on. Use -1 if you don't want to use any UDP.
 	 */
-	public Server(ServerConnectionListener listener, int tcpPort, int udpPort) {
-		if (listener == null)
-			throw new RuntimeException("Cannot give null ServerConnectionListener!");
+	public Server(ConnectionListener listener, int tcpPort, int udpPort) {
 		this.listener = listener;
+
 		this.tcpPort = tcpPort;
 		this.udpPort = udpPort;
 		try {
 			tcpSocket = new ServerSocket(tcpPort);
 		} catch (BindException e) {
 			System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");
+			throw new RuntimeException(e);
 		} catch (IOException e) {
-			System.err.println("There was a problem starting the server's TCP socket on port " + tcpPort);
-			System.err.println(e.toString());
+			if (e.toString().contains("JVM_Bind")) {
+				System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");
+			}
+			throw new RuntimeException(e);
 		}
 		if (udpPort != -1) {
 			try {
@@ -88,8 +92,9 @@ public class Server {
 		}
 		running = true;
 		startTCPConnectionListener();
-		if (udpPort != -1)
+		if (udpPort != -1) {
 			startUDPListener();
+		}
 	}
 
 	private void startTCPConnectionListener() {
@@ -125,8 +130,9 @@ public class Server {
 						byte[] ret = Arrays.copyOf(inputPacket.getData(), inputPacket.getLength());
 						String senderIP = inputPacket.getAddress().getHostAddress();
 						ServerConnection conn = udpClients.get(senderIP + inputPacket.getPort());
-						if (conn == null)
+						if (conn == null) {
 							conn = clients.get(senderIP);
+						}
 						if (conn == null) {
 							System.err.println("Received UDP Packet from unknown source: " + senderIP);
 						} else {
@@ -167,7 +173,7 @@ public class Server {
 		synchronized (udpClients) {
 			clients.remove(conn.getIP() + conn.getUDPPort());
 		}
-		listener.clientDisconnected(conn, forced);
+		listener.connectionBroken(conn, forced);
 
 	}
 
@@ -197,8 +203,9 @@ public class Server {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		if (udpSocket != null)
+		if (udpSocket != null) {
 			udpSocket.close();
+		}
 		synchronized (clients) {
 			LinkedList<String> ips = new LinkedList<String>();
 			for (String ip : clients.keySet()) {

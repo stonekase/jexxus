@@ -7,8 +7,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 
 import jexxus.common.Connection;
+import jexxus.common.ConnectionListener;
 import jexxus.common.Delivery;
 import jexxus.common.Encryption;
 import jexxus.common.Encryption.Algorithm;
@@ -22,7 +24,6 @@ import jexxus.common.Encryption.Algorithm;
 public class ServerConnection extends Connection {
 
 	private final Server controller;
-	private ServerConnectionListener listener;
 	private final Socket socket;
 	private final OutputStream tcpOutput;
 	private final InputStream tcpInput;
@@ -31,9 +32,10 @@ public class ServerConnection extends Connection {
 	private int udpPort = -1;
 	private Encryption.Algorithm encryption;
 
-	ServerConnection(Server controller, ServerConnectionListener listener, Socket socket) throws IOException {
+	ServerConnection(Server controller, ConnectionListener listener, Socket socket) throws IOException {
+		super(listener);
+
 		this.controller = controller;
-		this.listener = listener;
 		this.socket = socket;
 		this.ip = socket.getInetAddress().getHostAddress();
 		tcpOutput = new BufferedOutputStream(socket.getOutputStream());
@@ -60,16 +62,18 @@ public class ServerConnection extends Connection {
 					try {
 						byte[] ret = readTCP();
 						listener.receive(ret, ServerConnection.this);
-					} catch (Exception e) {
+					} catch (SocketException e) {
 						if (connected) {
 							connected = false;
 							controller.connectionDied(ServerConnection.this, false);
-							listener.clientDisconnected(ServerConnection.this, false);
+							listener.connectionBroken(ServerConnection.this, false);
 						} else {
 							controller.connectionDied(ServerConnection.this, true);
-							listener.clientDisconnected(ServerConnection.this, true);
+							listener.connectionBroken(ServerConnection.this, true);
 						}
 						break;
+					} catch (Exception e) {
+						e.printStackTrace();
 					}
 				}
 			}
@@ -156,10 +160,6 @@ public class ServerConnection extends Connection {
 	@Override
 	public boolean isConnected() {
 		return connected;
-	}
-
-	public void setListener(ServerConnectionListener listener) {
-		this.listener = listener;
 	}
 
 	@Override
