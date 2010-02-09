@@ -19,6 +19,8 @@ public abstract class Connection {
 
 	private static final int MAGIC_NUMBER = 1304231989;
 
+	protected ConnectionListener listener;
+
 	/**
 	 * Checks to see whether the current connection is open.
 	 * 
@@ -48,6 +50,13 @@ public abstract class Connection {
 	private final byte[] headerInput = new byte[8];
 	private final byte[] headerOutput = new byte[8];
 
+	public Connection(ConnectionListener listener) {
+		if (listener == null) {
+			throw new RuntimeException("You must supply a connection listener.");
+		}
+		this.listener = listener;
+	}
+
 	protected byte[] readTCP() throws IOException {
 		InputStream tcpInput = getTCPInputStream();
 
@@ -64,6 +73,7 @@ public abstract class Connection {
 		while (count < len) {
 			count += tcpInput.read(data, count, len - count);
 		}
+
 		Encryption.Algorithm crypt = getEncryptionAlgorithm();
 		if (crypt != null) {
 			data = crypt.decrpyt(data);
@@ -121,6 +131,10 @@ public abstract class Connection {
 		}
 
 		return bos.toByteArray();
+	}
+
+	public void setConnectionListener(ConnectionListener listener) {
+		this.listener = listener;
 	}
 
 	protected Encryption.Algorithm getEncryptionAlgorithm() {

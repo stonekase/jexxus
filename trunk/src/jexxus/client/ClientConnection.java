@@ -12,6 +12,7 @@ import java.net.Socket;
 import java.util.Arrays;
 
 import jexxus.common.Connection;
+import jexxus.common.ConnectionListener;
 import jexxus.common.Delivery;
 import jexxus.common.Encryption;
 import jexxus.common.Encryption.Algorithm;
@@ -24,7 +25,6 @@ import jexxus.common.Encryption.Algorithm;
  */
 public class ClientConnection extends Connection {
 
-	private ClientConnectionListener listener;
 	private Socket tcpSocket;
 	private DatagramSocket udpSocket;
 	protected final String serverAddress;
@@ -45,7 +45,7 @@ public class ClientConnection extends Connection {
 	 * @param tcpPort
 	 *            The port to connect to the server on.
 	 */
-	public ClientConnection(ClientConnectionListener listener, String serverAddress, int tcpPort) {
+	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort) {
 		this(listener, serverAddress, tcpPort, -1);
 	}
 
@@ -61,10 +61,9 @@ public class ClientConnection extends Connection {
 	 * @param udpPort
 	 *            The port to send data using the UDP protocol.
 	 */
-	public ClientConnection(ClientConnectionListener listener, String serverAddress, int tcpPort, int udpPort) {
-		if (listener == null) {
-			throw new RuntimeException("You must supply a connection listener.");
-		}
+	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, int udpPort) {
+		super(listener);
+
 		this.listener = listener;
 		this.serverAddress = serverAddress;
 		this.tcpPort = tcpPort;
@@ -165,13 +164,14 @@ public class ClientConnection extends Connection {
 				while (true) {
 					try {
 						byte[] ret = readTCP();
-						listener.receive(ret);
+						listener.receive(ret, ClientConnection.this);
 					} catch (IOException e) {
 						if (connected) {
+							encryption = null;
 							connected = false;
-							listener.connectionBroken(false);
+							listener.connectionBroken(ClientConnection.this, false);
 						} else {
-							listener.connectionBroken(true);
+							listener.connectionBroken(ClientConnection.this, true);
 						}
 						if (udpSocket != null) {
 							udpSocket.close();
@@ -194,7 +194,7 @@ public class ClientConnection extends Connection {
 					try {
 						udpSocket.receive(inputPacket);
 						byte[] ret = Arrays.copyOf(inputPacket.getData(), inputPacket.getLength());
-						listener.receive(ret);
+						listener.receive(ret, ClientConnection.this);
 					} catch (IOException e) {
 						if (connected) {
 							connected = false;
@@ -226,13 +226,6 @@ public class ClientConnection extends Connection {
 	@Override
 	public boolean isConnected() {
 		return connected;
-	}
-
-	/**
-	 * Sets the connection listener.
-	 */
-	public void setConnectionListener(ClientConnectionListener listener) {
-		this.listener = listener;
 	}
 
 	@Override
