@@ -19,6 +19,8 @@ public abstract class Connection {
 
 	private static final int MAGIC_NUMBER = 1304231989;
 
+	private long bytesSent = 0;
+
 	protected ConnectionListener listener;
 
 	/**
@@ -61,7 +63,7 @@ public abstract class Connection {
 		InputStream tcpInput = getTCPInputStream();
 
 		if (tcpInput.read(headerInput) == -1) {
-			throw new IOException("Ended.");
+			return null;
 		}
 		int magicNumber = ByteBuffer.wrap(headerInput).getInt();
 		if (magicNumber != MAGIC_NUMBER) {
@@ -74,10 +76,6 @@ public abstract class Connection {
 			count += tcpInput.read(data, count, len - count);
 		}
 
-		Encryption.Algorithm crypt = getEncryptionAlgorithm();
-		if (crypt != null) {
-			data = crypt.decrpyt(data);
-		}
 		data = decompress(data);
 
 		return data;
@@ -87,15 +85,13 @@ public abstract class Connection {
 		OutputStream tcpOutput = getTCPOutputStream();
 
 		data = compress(data);
-		Encryption.Algorithm crypt = getEncryptionAlgorithm();
-		if (crypt != null) {
-			data = crypt.encrypt(data);
-		}
 		ByteBuffer.wrap(headerOutput).putInt(MAGIC_NUMBER);
 		ByteBuffer.wrap(headerOutput).putInt(4, data.length);
 		tcpOutput.write(headerOutput);
 		tcpOutput.write(data);
 		tcpOutput.flush();
+
+		bytesSent += data.length;
 	}
 
 	protected byte[] compress(byte[] data) {
@@ -137,8 +133,8 @@ public abstract class Connection {
 		this.listener = listener;
 	}
 
-	protected Encryption.Algorithm getEncryptionAlgorithm() {
-		// Subclasses can override
-		return null;
+	public long getBytesSent() {
+		return bytesSent;
 	}
+
 }

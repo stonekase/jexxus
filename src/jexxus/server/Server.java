@@ -11,6 +11,10 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.SSLServerSocket;
+import javax.net.ssl.SSLServerSocketFactory;
+
 import jexxus.common.ConnectionListener;
 
 /**
@@ -39,8 +43,8 @@ public class Server {
 	 * @param port
 	 *            The port to listen for client connections on. [TCP]
 	 */
-	public Server(ConnectionListener listener, int port) {
-		this(listener, port, -1);
+	public Server(ConnectionListener listener, int port, boolean useSSL) {
+		this(listener, port, -1, useSSL);
 	}
 
 	/**
@@ -55,13 +59,18 @@ public class Server {
 	 * @param udpPort
 	 *            The port to listen for UDP client connections on. Use -1 if you don't want to use any UDP.
 	 */
-	public Server(ConnectionListener listener, int tcpPort, int udpPort) {
+	public Server(ConnectionListener listener, int tcpPort, int udpPort, boolean useSSL) {
 		this.listener = listener;
 
 		this.tcpPort = tcpPort;
 		this.udpPort = udpPort;
 		try {
-			tcpSocket = new ServerSocket(tcpPort);
+			ServerSocketFactory socketFactory = useSSL ? SSLServerSocketFactory.getDefault() : ServerSocketFactory.getDefault();
+			tcpSocket = socketFactory.createServerSocket(tcpPort);
+
+			final String[] enabledCipherSuites = { "SSL_DH_anon_WITH_RC4_128_MD5" };
+			((SSLServerSocket) tcpSocket).setEnabledCipherSuites(enabledCipherSuites);
+
 		} catch (BindException e) {
 			System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");
 			throw new RuntimeException(e);

@@ -11,11 +11,13 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.Arrays;
 
+import javax.net.SocketFactory;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+
 import jexxus.common.Connection;
 import jexxus.common.ConnectionListener;
 import jexxus.common.Delivery;
-import jexxus.common.Encryption;
-import jexxus.common.Encryption.Algorithm;
 
 /**
  * Used to establish a connection to a server.
@@ -33,7 +35,7 @@ public class ClientConnection extends Connection {
 	private boolean connected = false;
 	private InputStream tcpInput;
 	private OutputStream tcpOutput;
-	private Encryption.Algorithm encryption;
+	private final boolean useSSL;
 
 	/**
 	 * Creates a new connection to a server. The connection is not ready for use until <code>connect()</code> is called.
@@ -45,8 +47,8 @@ public class ClientConnection extends Connection {
 	 * @param tcpPort
 	 *            The port to connect to the server on.
 	 */
-	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort) {
-		this(listener, serverAddress, tcpPort, -1);
+	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, boolean useSSL) {
+		this(listener, serverAddress, tcpPort, -1, useSSL);
 	}
 
 	/**
@@ -61,13 +63,14 @@ public class ClientConnection extends Connection {
 	 * @param udpPort
 	 *            The port to send data using the UDP protocol.
 	 */
-	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, int udpPort) {
+	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, int udpPort, boolean useSSL) {
 		super(listener);
 
 		this.listener = listener;
 		this.serverAddress = serverAddress;
 		this.tcpPort = tcpPort;
 		this.udpPort = udpPort;
+		this.useSSL = useSSL;
 
 		if (udpPort != -1) {
 			try {
@@ -80,8 +83,8 @@ public class ClientConnection extends Connection {
 		}
 	}
 
-	public synchronized boolean connect() {
-		return connect(0);
+	public synchronized void connect() throws IOException {
+		connect(0);
 	}
 
 	/**
@@ -89,43 +92,28 @@ public class ClientConnection extends Connection {
 	 * 
 	 * @return true if the connection was successful, false otherwise.
 	 */
-	public synchronized boolean connect(int timeout) {
+	public synchronized void connect(int timeout) throws IOException {
 		if (connected) {
-			System.err.println("Tried to connect after already connected!");
-			return true;
+			throw new IllegalStateException("Tried to connect after already connected!");
 		}
-		try {
-			tcpSocket = new Socket();
-			tcpSocket.connect(new InetSocketAddress(serverAddress, tcpPort), timeout);
-			tcpInput = new BufferedInputStream(tcpSocket.getInputStream());
-			tcpOutput = new BufferedOutputStream(tcpSocket.getOutputStream());
 
-			try {
-				this.encryption = Encryption.createEncryptionAlgorithm(this);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+		SocketFactory socketFactory = useSSL ? SSLSocketFactory.getDefault() : SocketFactory.getDefault();
+		tcpSocket = socketFactory.createSocket();
 
-			startTCPListener();
-			connected = true;
-			if (udpPort != -1) {
-				startUDPListener();
-				send(new byte[0], Delivery.UNRELIABLE);
-			}
-			/*
-			 * byte[] portBuf = new byte[4]; ByteUtils.pack(udpPort, portBuf); tcpOutput.write(portBuf); tcpOutput.flush();
-			 */
-			return true;
-		} catch (IOException e) {
-			System.err.println("Problem establishing TCP connection to " + serverAddress + ":" + tcpPort);
-			System.err.println(e.toString());
-			return false;
+		final String[] enabledCipherSuites = { "SSL_DH_anon_WITH_RC4_128_MD5" };
+		((SSLSocket) tcpSocket).setEnabledCipherSuites(enabledCipherSuites);
+
+		tcpSocket.connect(new InetSocketAddress(serverAddress, tcpPort), timeout);
+		tcpInput = new BufferedInputStream(tcpSocket.getInputStream());
+		tcpOutput = new BufferedOutputStream(tcpSocket.getOutputStream());
+
+		startTCPListener();
+		connected = true;
+		if (udpPort != -1) {
+			startUDPListener();
+			send(new byte[0], Delivery.UNRELIABLE);
 		}
-	}
 
-	@Override
-	protected Algorithm getEncryptionAlgorithm() {
-		return encryption;
 	}
 
 	@Override
@@ -167,7 +155,6 @@ public class ClientConnection extends Connection {
 						ret = readTCP();
 					} catch (IOException e) {
 						if (connected) {
-							encryption = null;
 							connected = false;
 							listener.connectionBroken(ClientConnection.this, false);
 						} else {
@@ -179,6 +166,16 @@ public class ClientConnection extends Connection {
 						break;
 					} catch (Exception e) {
 						e.printStackTrace();
+						break;
+					}
+					if (ret == null) {
+						// the stream has ended
+						if (connected) {
+							connected = false;
+							listener.connectionBroken(ClientConnection.this, false);
+						} else {
+							listener.connectionBroken(ClientConnection.this, true);
+						}
 						break;
 					}
 					try {

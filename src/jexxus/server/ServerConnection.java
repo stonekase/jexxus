@@ -12,8 +12,6 @@ import java.net.SocketException;
 import jexxus.common.Connection;
 import jexxus.common.ConnectionListener;
 import jexxus.common.Delivery;
-import jexxus.common.Encryption;
-import jexxus.common.Encryption.Algorithm;
 
 /**
  * Represents a server's connection to a client.
@@ -30,7 +28,6 @@ public class ServerConnection extends Connection {
 	private boolean connected = true;
 	private final String ip;
 	private int udpPort = -1;
-	private Encryption.Algorithm encryption;
 
 	ServerConnection(Server controller, ConnectionListener listener, Socket socket) throws IOException {
 		super(listener);
@@ -41,18 +38,7 @@ public class ServerConnection extends Connection {
 		tcpOutput = new BufferedOutputStream(socket.getOutputStream());
 		tcpInput = new BufferedInputStream(socket.getInputStream());
 
-		try {
-			this.encryption = Encryption.createEncryptionAlgorithm(this);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
 		startTCPListener();
-	}
-
-	@Override
-	protected Algorithm getEncryptionAlgorithm() {
-		return encryption;
 	}
 
 	private void startTCPListener() {
@@ -74,6 +60,18 @@ public class ServerConnection extends Connection {
 						break;
 					} catch (Exception e) {
 						e.printStackTrace();
+						break;
+					}
+					if (ret == null) {
+						// the stream has ended
+						if (connected) {
+							connected = false;
+							controller.connectionDied(ServerConnection.this, false);
+							listener.connectionBroken(ServerConnection.this, false);
+						} else {
+							controller.connectionDied(ServerConnection.this, true);
+							listener.connectionBroken(ServerConnection.this, true);
+						}
 						break;
 					}
 					try {
