@@ -50,10 +50,8 @@ public class ServerConnection extends Connection {
 						if (connected) {
 							connected = false;
 							controller.connectionDied(ServerConnection.this, false);
-							listener.connectionBroken(ServerConnection.this, false);
 						} else {
 							controller.connectionDied(ServerConnection.this, true);
-							listener.connectionBroken(ServerConnection.this, true);
 						}
 						break;
 					} catch (Exception e) {
@@ -65,10 +63,8 @@ public class ServerConnection extends Connection {
 						if (connected) {
 							connected = false;
 							controller.connectionDied(ServerConnection.this, false);
-							listener.connectionBroken(ServerConnection.this, false);
 						} else {
 							controller.connectionDied(ServerConnection.this, true);
-							listener.connectionBroken(ServerConnection.this, true);
 						}
 						break;
 					}
