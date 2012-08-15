@@ -223,11 +223,24 @@ public class Server {
 
 	/**
 	 * After the server has shut down, no new client connections can be established.
-	 * 
-	 * @param closeAllConnections
-	 *            If this is true, all previously opened client connections will be closed.
 	 */
-	public void shutdown(boolean closeAllConnections) {
+	public void shutdown() {
+        if( !running ) {
+            System.out.println("No need to stop server, because its not running.");
+            return;
+        }
+        
+        synchronized (clients) {
+            LinkedList<String> ips = new LinkedList<String>();
+            for (String ip : clients.keySet()) {
+                ips.add(ip);
+            }
+            for (String ip : ips) {
+                ServerConnection sc = clients.get(ip);
+                sc.exit();
+            }
+        }
+        
 		running = false;
 		try {
 			tcpSocket.close();
@@ -236,16 +249,6 @@ public class Server {
 		}
 		if (udpSocket != null) {
 			udpSocket.close();
-		}
-		synchronized (clients) {
-			LinkedList<String> ips = new LinkedList<String>();
-			for (String ip : clients.keySet()) {
-				ips.add(ip);
-			}
-			for (String ip : ips) {
-				ServerConnection sc = clients.get(ip);
-				sc.exit();
-			}
 		}
 	}
 
