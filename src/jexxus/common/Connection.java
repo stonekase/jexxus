@@ -19,6 +19,7 @@ public abstract class Connection {
 
 	private static final int MAGIC_NUMBER = 1304231989;
 
+    private final String ip;
 	private long bytesSent = 0;
 
 	protected ConnectionListener listener;
@@ -52,12 +53,16 @@ public abstract class Connection {
 	private final byte[] headerInput = new byte[8];
 	private final byte[] headerOutput = new byte[8];
 
-	public Connection(ConnectionListener listener) {
-		if (listener == null) {
-			throw new RuntimeException("You must supply a connection listener.");
-		}
-		this.listener = listener;
-	}
+    public Connection(ConnectionListener listener, String ip) {
+        if (listener == null) {
+            throw new RuntimeException("You must supply a connection listener.");
+        }     
+        if (ip == null) {
+            throw new RuntimeException("You must supply an ip.");
+        }
+        this.listener = listener;
+        this.ip = ip;
+    }
 
 	protected byte[] readTCP() throws IOException {
 		InputStream tcpInput = getTCPInputStream();
@@ -137,4 +142,10 @@ public abstract class Connection {
 		return bytesSent;
 	}
 
+    /**
+     * @return The IP of this connection.
+     */
+    public String getIP() {
+        return ip;
+    }
 }
