@@ -7,14 +7,17 @@ import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLServerSocketFactory;
 
+import jexxus.common.Connection;
 import jexxus.common.ConnectionListener;
 
 /**
@@ -33,6 +36,7 @@ public class Server {
 	private DatagramSocket udpSocket;
 	private boolean running = false;
 	protected final int tcpPort, udpPort;
+    private Object mLockConnectionList = new Object();
 	private final HashMap<String, ServerConnection> clients = new HashMap<String, ServerConnection>();
 	private final HashMap<String, ServerConnection> udpClients = new HashMap<String, ServerConnection>();
 
@@ -134,9 +138,12 @@ public class Server {
 				while (running) {
 					try {
 						Socket sock = tcpSocket.accept();
-						ServerConnection sc = new ServerConnection(Server.this, listener, sock);
-						clients.put(sc.getIP(), sc);
-						listener.clientConnected(sc);
+						
+                        synchronized( mLockConnectionList ) {
+    						ServerConnection sc = new ServerConnection(Server.this, listener, sock);
+    						clients.put(sc.getIP(), sc);
+    						listener.clientConnected(sc);
+                        }
 					} catch (IOException e) {
 						if (running) {
 							e.printStackTrace();
@@ -198,7 +205,7 @@ public class Server {
 	}
 
 	void connectionDied(ServerConnection conn, boolean forced) {
-		synchronized (clients) {
+        synchronized( mLockConnectionList ) {
 			clients.remove(conn.getIP());
 		}
 		synchronized (udpClients) {
@@ -230,7 +237,7 @@ public class Server {
             return;
         }
         
-        synchronized (clients) {
+        synchronized (mLockConnectionList) {
             LinkedList<String> ips = new LinkedList<String>();
             for (String ip : clients.keySet()) {
                 ips.add(ip);
@@ -239,6 +246,7 @@ public class Server {
                 ServerConnection sc = clients.get(ip);
                 sc.exit();
             }
+            clients.clear();
         }
         
 		running = false;
@@ -251,5 +259,19 @@ public class Server {
 			udpSocket.close();
 		}
 	}
+
+    public boolean isRunning() {
+        return running;
+    }
+
+    public List<Connection> getClients()  {
+        List<Connection> connectedClients = new ArrayList<>();
+
+        synchronized( mLockConnectionList ) {
+            connectedClients.addAll(clients.values());
+        }
+
+        return connectedClients;
+    }
 
 }
