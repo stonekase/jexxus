@@ -1,6 +1,13 @@
 package clientservercommunication;
 
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import java.util.List;
+
 import jexxus.client.ClientConnection;
 import jexxus.common.Connection;
 import jexxus.common.ConnectionListener;
@@ -14,6 +21,79 @@ import org.junit.Test;
 public class TestClientServerCommunication
 {
     private final static int PORT = 50163;
+
+    @Test
+    public void clientsSendMessagesToServer() throws Exception
+    {
+        ConnectionListener clientConnectionListenerMock = mock(ConnectionListener.class);
+        ConnectionListener serverConnectionListenerMock = mock(ConnectionListener.class);
+
+        Server server = new Server(serverConnectionListenerMock, PORT);
+        server.startServer();
+
+        final int NR_OF_CLIENTS = 100;
+
+        for( int i = 0; i < NR_OF_CLIENTS; i++ )
+        {
+            ClientConnection clientConnection = new ClientConnection(clientConnectionListenerMock, "localhost", PORT);
+            clientConnection.connect();
+            clientConnection.send("message1".getBytes(), Delivery.RELIABLE);
+            clientConnection.send("message2".getBytes(), Delivery.RELIABLE);
+        }
+
+        final int NR_OF_MESSAGES_SEND_PER_CLIENT = 2;
+        final int expectedRecievedMessages = NR_OF_CLIENTS * NR_OF_MESSAGES_SEND_PER_CLIENT;
+        verify(serverConnectionListenerMock, times(expectedRecievedMessages)).receive(any(byte[].class),
+                any(ServerConnection.class));
+
+        server.shutdown();
+    }
+
+    @Test
+    public void clientsConnectToServer() throws Exception
+    {
+        ConnectionListener clientConnectionListenerMock = mock(ConnectionListener.class);
+        ConnectionListener serverConnectionListenerMock = mock(ConnectionListener.class);
+
+        Server server = new Server(serverConnectionListenerMock, PORT);
+        server.startServer();
+
+        final int NR_OF_CLIENTS = 100;
+
+        for( int i = 0; i < NR_OF_CLIENTS; i++ )
+        {
+            ClientConnection clientConnection = new ClientConnection(clientConnectionListenerMock, "localhost", PORT);
+            clientConnection.connect();
+        }
+
+        verify(serverConnectionListenerMock, times(NR_OF_CLIENTS)).clientConnected(any(ServerConnection.class));
+
+        server.shutdown();
+    }
+
+    @Test
+    public void clientDisconnectsFromServer() throws Exception
+    {
+        ConnectionListener clientConnectionListenerMock = mock(ConnectionListener.class);
+        ConnectionListener serverConnectionListenerMock = mock(ConnectionListener.class);
+
+        Server server = new Server(serverConnectionListenerMock, PORT);
+        server.startServer();
+
+        ClientConnection clientConnection = new ClientConnection(clientConnectionListenerMock, "localhost", PORT);
+        clientConnection.connect();
+        clientConnection.send("a message".getBytes(), Delivery.RELIABLE);
+        clientConnection.close();
+
+        Thread.sleep(100);
+
+        boolean isConnected = clientConnection.isConnected();
+        Assert.assertFalse(isConnected);
+
+        verify(serverConnectionListenerMock, times(1)).connectionBroken(any(ServerConnection.class), anyBoolean());
+
+        server.shutdown();
+    }
     
     @Test
     public void serverKnowsIpFromClients() throws Exception
@@ -36,6 +116,38 @@ public class TestClientServerCommunication
         Assert.assertEquals(serverConnectionListener.mIpFromSendingClient, serverConnectionListener.mIpFromLostClient);
 
         server.shutdown();
+    }
+
+    @Test
+    public void reuseServer() throws Exception
+    {
+        ConnectionListener clientConnectionListenerMock = mock(ConnectionListener.class);
+        ConnectionListener serverConnectionListenerMock = mock(ConnectionListener.class);
+
+        Server server = new Server(serverConnectionListenerMock, PORT);
+        server.startServer();
+
+        ClientConnection clientConnection = new ClientConnection(clientConnectionListenerMock, "localhost", PORT);
+        clientConnection.connect();
+        clientConnection.send("a message".getBytes(), Delivery.RELIABLE);
+
+        server.shutdown();
+
+        server.startServer();
+
+        clientConnection = new ClientConnection(clientConnectionListenerMock, "localhost", PORT);
+        clientConnection.connect();
+        clientConnection.send("a message".getBytes(), Delivery.RELIABLE);
+        boolean isClientConnected = clientConnection.isConnected();
+        Assert.assertTrue(isClientConnected);
+
+        List<Connection> connectedClients = server.getClients();
+        Assert.assertEquals(1, connectedClients.size());
+
+        server.shutdown();
+
+        verify(serverConnectionListenerMock, times(2)).clientConnected(any(ServerConnection.class));
+        verify(serverConnectionListenerMock, times(2)).receive(any(byte[].class), any(ServerConnection.class));
     }
 
     class MyConnectionListener
