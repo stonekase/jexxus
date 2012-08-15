@@ -28,6 +28,7 @@ import jexxus.common.Delivery;
 public class ClientConnection extends Connection {
 
     private final static boolean DEFAULT_SSL_VALUE = false;
+    private final static int UDP_PORT_VALUE_FOR_NOT_USING_UDP = -1;
     
 	private Socket tcpSocket;
 	private DatagramSocket udpSocket;
@@ -50,7 +51,7 @@ public class ClientConnection extends Connection {
      *            The port to connect to the server on.
      */
     public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort) {
-        this(listener, serverAddress, tcpPort, -1, DEFAULT_SSL_VALUE);
+        this(listener, serverAddress, tcpPort, UDP_PORT_VALUE_FOR_NOT_USING_UDP, DEFAULT_SSL_VALUE);
     }
 
 	/**
@@ -66,7 +67,7 @@ public class ClientConnection extends Connection {
      *            Should SSL be used?
 	 */
 	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, boolean useSSL) {
-		this(listener, serverAddress, tcpPort, -1, useSSL);
+		this(listener, serverAddress, tcpPort, UDP_PORT_VALUE_FOR_NOT_USING_UDP, useSSL);
 	}
 
 	/**
@@ -92,7 +93,7 @@ public class ClientConnection extends Connection {
 		this.udpPort = udpPort;
 		this.useSSL = useSSL;
 
-		if (udpPort != -1) {
+		if (udpPort != UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
 			try {
 				packet = new DatagramPacket(new byte[0], 0, new InetSocketAddress(serverAddress, udpPort));
 				udpSocket = new DatagramSocket();
@@ -132,7 +133,7 @@ public class ClientConnection extends Connection {
 
 		startTCPListener();
 		connected = true;
-		if (udpPort != -1) {
+		if (udpPort != UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
 			startUDPListener();
 			send(new byte[0], Delivery.UNRELIABLE);
 		}
@@ -155,7 +156,7 @@ public class ClientConnection extends Connection {
 				System.err.println(e.toString());
 			}
 		} else if (deliveryType == Delivery.UNRELIABLE) {
-			if (udpPort == -1) {
+			if (udpPort == UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
 				System.err.println("Cannot send Unreliable data unless a UDP port is specified.");
 				return;
 			}
