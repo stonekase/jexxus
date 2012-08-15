@@ -27,6 +27,8 @@ import jexxus.common.Delivery;
  */
 public class ClientConnection extends Connection {
 
+    private final static boolean DEFAULT_SSL_VALUE = false;
+    
 	private Socket tcpSocket;
 	private DatagramSocket udpSocket;
 	protected final String serverAddress;
@@ -37,6 +39,20 @@ public class ClientConnection extends Connection {
 	private OutputStream tcpOutput;
 	private final boolean useSSL;
 
+    /**
+     * Creates a new connection to a server. The connection is not ready for use until <code>connect()</code> is called.
+     * 
+     * @param listener
+     *            The responder to special events such as receiving data.
+     * @param serverAddress
+     *            The IP address of the server to connect to.
+     * @param tcpPort
+     *            The port to connect to the server on.
+     */
+    public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort) {
+        this(listener, serverAddress, tcpPort, -1, DEFAULT_SSL_VALUE);
+    }
+
 	/**
 	 * Creates a new connection to a server. The connection is not ready for use until <code>connect()</code> is called.
 	 * 
@@ -46,6 +62,8 @@ public class ClientConnection extends Connection {
 	 *            The IP address of the server to connect to.
 	 * @param tcpPort
 	 *            The port to connect to the server on.
+     * @param useSSL
+     *            Should SSL be used?
 	 */
 	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, boolean useSSL) {
 		this(listener, serverAddress, tcpPort, -1, useSSL);
@@ -62,6 +80,8 @@ public class ClientConnection extends Connection {
 	 *            The port to send data using the TCP protocol.
 	 * @param udpPort
 	 *            The port to send data using the UDP protocol.
+     * @param useSSL
+     *            Should SSL be used?
 	 */
 	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, int udpPort, boolean useSSL) {
 		super(listener);
