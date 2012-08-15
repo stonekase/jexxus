@@ -36,6 +36,7 @@ public class Server {
 	private DatagramSocket udpSocket;
 	private boolean running = false;
 	protected final int tcpPort, udpPort;
+	private final boolean useSSL;
     private Object mLockConnectionList = new Object();
 	private final HashMap<String, ServerConnection> clients = new HashMap<String, ServerConnection>();
 	private final HashMap<String, ServerConnection> udpClients = new HashMap<String, ServerConnection>();
@@ -87,34 +88,7 @@ public class Server {
 
 		this.tcpPort = tcpPort;
 		this.udpPort = udpPort;
-		try {
-			ServerSocketFactory socketFactory = useSSL ? SSLServerSocketFactory.getDefault() : ServerSocketFactory.getDefault();
-			tcpSocket = socketFactory.createServerSocket(tcpPort);
-
-            if( useSSL )
-            {
-                final String[] enabledCipherSuites = { "SSL_DH_anon_WITH_RC4_128_MD5" };
-                ((SSLServerSocket) tcpSocket).setEnabledCipherSuites(enabledCipherSuites);
-            }
-
-		} catch (BindException e) {
-			System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");
-			throw new RuntimeException(e);
-		} catch (IOException e) {
-			if (e.toString().contains("JVM_Bind")) {
-				System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");
-			}
-			throw new RuntimeException(e);
-		}
-		if (udpPort != UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
-			try {
-				udpSocket = new DatagramSocket(udpPort);
-			} catch (SocketException e) {
-				System.err.println("There was a problem starting the server's UDP socket on port " + udpPort);
-				System.err.println(e.toString());
-			}
-		}
-
+		this.useSSL = useSSL;
 	}
 
 	/**
@@ -126,6 +100,35 @@ public class Server {
 			return;
 		}
 		running = true;
+		
+        try {
+            ServerSocketFactory socketFactory = useSSL ? SSLServerSocketFactory.getDefault() : ServerSocketFactory.getDefault();
+            tcpSocket = socketFactory.createServerSocket(tcpPort);
+
+            if( useSSL )
+            {
+                final String[] enabledCipherSuites = { "SSL_DH_anon_WITH_RC4_128_MD5" };
+                ((SSLServerSocket) tcpSocket).setEnabledCipherSuites(enabledCipherSuites);
+            }
+
+        } catch (BindException e) {
+            System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            if (e.toString().contains("JVM_Bind")) {
+                System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");
+            }
+            throw new RuntimeException(e);
+        }
+        if (udpPort != UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
+            try {
+                udpSocket = new DatagramSocket(udpPort);
+            } catch (SocketException e) {
+                System.err.println("There was a problem starting the server's UDP socket on port " + udpPort);
+                System.err.println(e.toString());
+            }
+        }
+		
 		startTCPConnectionListener();
 		if (udpPort != UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
 			startUDPListener();
@@ -212,7 +215,6 @@ public class Server {
 		    udpClients.remove(conn.getIP() + conn.getUDPPort());
 		}
 		listener.connectionBroken(conn, forced);
-
 	}
 
 	void sendUDP(byte[] data, ServerConnection serverConnection) {
@@ -246,7 +248,6 @@ public class Server {
                 ServerConnection sc = clients.get(ip);
                 sc.exit();
             }
-            clients.clear();
         }
         
 		running = false;
