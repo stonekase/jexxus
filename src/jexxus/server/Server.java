@@ -183,7 +183,7 @@ public class Server {
 			clients.remove(conn.getIP());
 		}
 		synchronized (udpClients) {
-			clients.remove(conn.getIP() + conn.getUDPPort());
+		    udpClients.remove(conn.getIP() + conn.getUDPPort());
 		}
 		listener.connectionBroken(conn, forced);
 
