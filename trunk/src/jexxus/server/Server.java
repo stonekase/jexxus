@@ -25,6 +25,9 @@ import jexxus.common.ConnectionListener;
  */
 public class Server {
 
+    private final static boolean DEFAULT_SSL_VALUE = false;
+    private final static int UDP_PORT_VALUE_FOR_NOT_USING_UDP = -1;
+    
 	private final ConnectionListener listener;
 	private ServerSocket tcpSocket;
 	private DatagramSocket udpSocket;
@@ -35,6 +38,18 @@ public class Server {
 
 	private final DatagramPacket outgoingPacket = new DatagramPacket(new byte[0], 0);
 
+    /**
+     * Creates a new server.
+     * 
+     * @param listener
+     *            The responder to special events such as receiving data.
+     * @param port
+     *            The port to listen for client connections on. [TCP]
+     */
+    public Server(ConnectionListener listener, int port) {
+        this(listener, port, UDP_PORT_VALUE_FOR_NOT_USING_UDP, DEFAULT_SSL_VALUE);
+    }
+
 	/**
 	 * Creates a new server.
 	 * 
@@ -42,9 +57,11 @@ public class Server {
 	 *            The responder to special events such as receiving data.
 	 * @param port
 	 *            The port to listen for client connections on. [TCP]
+     * @param useSSL
+     *            Should SSL be used?
 	 */
 	public Server(ConnectionListener listener, int port, boolean useSSL) {
-		this(listener, port, -1, useSSL);
+		this(listener, port, UDP_PORT_VALUE_FOR_NOT_USING_UDP, useSSL);
 	}
 
 	/**
@@ -58,6 +75,8 @@ public class Server {
 	 *            The port to listen for TCP client connections on.
 	 * @param udpPort
 	 *            The port to listen for UDP client connections on. Use -1 if you don't want to use any UDP.
+     * @param useSSL
+     *            Should SSL be used?
 	 */
 	public Server(ConnectionListener listener, int tcpPort, int udpPort, boolean useSSL) {
 		this.listener = listener;
@@ -83,7 +102,7 @@ public class Server {
 			}
 			throw new RuntimeException(e);
 		}
-		if (udpPort != -1) {
+		if (udpPort != UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
 			try {
 				udpSocket = new DatagramSocket(udpPort);
 			} catch (SocketException e) {
@@ -104,7 +123,7 @@ public class Server {
 		}
 		running = true;
 		startTCPConnectionListener();
-		if (udpPort != -1) {
+		if (udpPort != UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
 			startUDPListener();
 		}
 	}
@@ -150,10 +169,10 @@ public class Server {
 						} else {
 							if (ret.length == 0) {
 								System.out.println("Set UDP Port: " + inputPacket.getPort());
-								if (conn.getUDPPort() != -1) {
+								if (conn.getUDPPort() != UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
 									// see if there is another connection without a UDP port set
 									for (ServerConnection sc : clients.values()) {
-										if (sc.getUDPPort() == -1) {
+										if (sc.getUDPPort() == UDP_PORT_VALUE_FOR_NOT_USING_UDP) {
 											conn = sc;
 											break;
 										}
