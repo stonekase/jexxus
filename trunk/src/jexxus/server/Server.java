@@ -68,8 +68,11 @@ public class Server {
 			ServerSocketFactory socketFactory = useSSL ? SSLServerSocketFactory.getDefault() : ServerSocketFactory.getDefault();
 			tcpSocket = socketFactory.createServerSocket(tcpPort);
 
-			final String[] enabledCipherSuites = { "SSL_DH_anon_WITH_RC4_128_MD5" };
-			((SSLServerSocket) tcpSocket).setEnabledCipherSuites(enabledCipherSuites);
+            if( useSSL )
+            {
+                final String[] enabledCipherSuites = { "SSL_DH_anon_WITH_RC4_128_MD5" };
+                ((SSLServerSocket) tcpSocket).setEnabledCipherSuites(enabledCipherSuites);
+            }
 
 		} catch (BindException e) {
 			System.err.println("There is already a server bound to port " + tcpPort + " on this computer.");

@@ -100,8 +100,11 @@ public class ClientConnection extends Connection {
 		SocketFactory socketFactory = useSSL ? SSLSocketFactory.getDefault() : SocketFactory.getDefault();
 		tcpSocket = socketFactory.createSocket();
 
-		final String[] enabledCipherSuites = { "SSL_DH_anon_WITH_RC4_128_MD5" };
-		((SSLSocket) tcpSocket).setEnabledCipherSuites(enabledCipherSuites);
+        if( useSSL )
+        {
+            final String[] enabledCipherSuites = { "SSL_DH_anon_WITH_RC4_128_MD5" };
+            ((SSLSocket) tcpSocket).setEnabledCipherSuites(enabledCipherSuites);
+        }
 
 		tcpSocket.connect(new InetSocketAddress(serverAddress, tcpPort), timeout);
 		tcpInput = new BufferedInputStream(tcpSocket.getInputStream());
