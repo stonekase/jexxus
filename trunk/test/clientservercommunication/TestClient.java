@@ -1,9 +1,9 @@
 package clientservercommunication;
 
 
-import java.io.IOException;
+import static org.mockito.Mockito.mock;
 
-import static org.mockito.Mockito.*;
+import java.io.IOException;
 
 import jexxus.client.ClientConnection;
 import jexxus.common.ConnectionListener;
@@ -20,6 +20,15 @@ public class TestClient
         ConnectionListener clientConnectionListenerMock = mock(ConnectionListener.class);
 
         ClientConnection clientConnection = new ClientConnection(clientConnectionListenerMock, "localhost", PORT, false);
+        clientConnection.connect();
+    }
+
+    @Test(expected = IOException.class)
+    public void clientConnectNoServer() throws Exception
+    {
+        ConnectionListener clientConnectionListenerMock = mock(ConnectionListener.class);
+
+        ClientConnection clientConnection = new ClientConnection(clientConnectionListenerMock, "localhost", PORT);
         clientConnection.connect();
     }
 }

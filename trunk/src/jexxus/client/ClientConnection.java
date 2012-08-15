@@ -83,8 +83,8 @@ public class ClientConnection extends Connection {
      * @param useSSL
      *            Should SSL be used?
 	 */
-	public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, int udpPort, boolean useSSL) {
-		super(listener);
+    public ClientConnection(ConnectionListener listener, String serverAddress, int tcpPort, int udpPort, boolean useSSL) {
+        super(listener, serverAddress);
 
 		this.listener = listener;
 		this.serverAddress = serverAddress;

@@ -26,15 +26,13 @@ public class ServerConnection extends Connection {
 	private final OutputStream tcpOutput;
 	private final InputStream tcpInput;
 	private boolean connected = true;
-	private final String ip;
 	private int udpPort = -1;
 
-	ServerConnection(Server controller, ConnectionListener listener, Socket socket) throws IOException {
-		super(listener);
+    ServerConnection(Server controller, ConnectionListener listener, Socket socket) throws IOException {
+        super(listener, socket.getInetAddress().getHostAddress());
 
 		this.controller = controller;
 		this.socket = socket;
-		this.ip = socket.getInetAddress().getHostAddress();
 		tcpOutput = new BufferedOutputStream(socket.getOutputStream());
 		tcpInput = new BufferedInputStream(socket.getInputStream());
 
@@ -102,13 +100,6 @@ public class ServerConnection extends Connection {
 		} else if (deliveryType == Delivery.UNRELIABLE) {
 			controller.sendUDP(data, this);
 		}
-	}
-
-	/**
-	 * @return The IP of this client.
-	 */
-	public String getIP() {
-		return ip;
 	}
 
 	/**
