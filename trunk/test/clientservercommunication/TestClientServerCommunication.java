@@ -35,7 +35,7 @@ public class TestClientServerCommunication
                 serverConnectionListener.mIpFromSendingClient);
         Assert.assertEquals(serverConnectionListener.mIpFromSendingClient, serverConnectionListener.mIpFromLostClient);
 
-        server.shutdown(true);
+        server.shutdown();
     }
 
     class MyConnectionListener
