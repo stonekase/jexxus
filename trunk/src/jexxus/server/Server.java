@@ -31,7 +31,7 @@ public class Server {
     private final static boolean DEFAULT_SSL_VALUE = false;
     private final static int UDP_PORT_VALUE_FOR_NOT_USING_UDP = -1;
     
-	private final ConnectionListener listener;
+	private ConnectionListener listener;
 	private ServerSocket tcpSocket;
 	private DatagramSocket udpSocket;
 	private boolean running = false;
@@ -42,7 +42,36 @@ public class Server {
 	private final HashMap<String, ServerConnection> udpClients = new HashMap<String, ServerConnection>();
 
 	private final DatagramPacket outgoingPacket = new DatagramPacket(new byte[0], 0);
+	
+	/**
+	 * Listener which does nothing. It is used as long as there is no real listener being set.
+	 */
+	private static final ConnectionListener nullListener = new ConnectionListener() {
+        @Override
+        public void receive( byte[] pData, Connection pFrom )  {
+        }
+        
+        @Override
+        public void connectionBroken( Connection pBroken, boolean pForced ) {
+        }
+        
+        @Override
+        public void clientConnected( ServerConnection pConn )  {
+        }
+    };
 
+    /**
+     * Creates a new server.
+     * 
+     * This can be used, if one wants to inject the connection-listener later.
+     * 
+     * @param port
+     *            The port to listen for client connections on. [TCP]
+     */
+    public Server(int port) {
+        this(nullListener, port);
+    }
+    
     /**
      * Creates a new server.
      * 
@@ -52,7 +81,7 @@ public class Server {
      *            The port to listen for client connections on. [TCP]
      */
     public Server(ConnectionListener listener, int port) {
-        this(listener, port, UDP_PORT_VALUE_FOR_NOT_USING_UDP, DEFAULT_SSL_VALUE);
+        this(listener, port, DEFAULT_SSL_VALUE);
     }
 
 	/**
@@ -273,6 +302,16 @@ public class Server {
         }
 
         return connectedClients;
+    }
+    
+    /**
+     * Sets a new connection-listener.
+     * 
+     * @param newConnectionListener 
+     *  This is the new connection-listener.
+     */
+    public void setConnectionListener(final ConnectionListener newConnectionListener) {
+        this.listener = newConnectionListener;
     }
 
 }
