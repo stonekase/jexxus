@@ -54,12 +54,6 @@ public abstract class Connection {
 	private final byte[] headerOutput = new byte[8];
 
     public Connection(ConnectionListener listener, String ip) {
-        if (listener == null) {
-            throw new RuntimeException("You must supply a connection listener.");
-        }     
-        if (ip == null) {
-            throw new RuntimeException("You must supply an ip.");
-        }
         this.listener = listener;
         this.ip = ip;
     }
